@@ -30,3 +30,19 @@ export async function sendMessageApi(conversationId, content) {
 
   return res.json()
 }
+
+export async function likeConversation(conversationId) {
+  const res = await fetch(`/conversations/${conversationId}/like`, {
+    method: "POST",
+    credentials: "include"
+  })
+  return res.json()
+}
+
+export async function unlikeConversation(conversationId) {
+  const res = await fetch(`/conversations/${conversationId}/like`, {
+    method: "DELETE",
+    credentials: "include"
+  })
+  return res.json()
+}

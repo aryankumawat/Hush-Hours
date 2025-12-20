@@ -155,6 +155,29 @@
   box-shadow: var(--shadow-glow);
 }
 
+/* Glow effect for heart icon in favourites mode */
+.top-nav i[data-mode="favourites"].glow {
+  color: #ff6b6b;
+  text-shadow: 0 0 12px rgba(255, 107, 107, 0.8);
+  animation: heartPulse 2s ease-in-out infinite;
+}
+
+@keyframes heartPulse {
+  0%, 100% {
+    text-shadow: 0 0 12px rgba(255, 107, 107, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(255, 107, 107, 1);
+    transform: scale(1.1);
+  }
+}
+
+.top-nav i[data-mode="favourites"].glow.active {
+  color: #ff6b6b;
+  text-shadow: 0 0 16px rgba(255, 107, 107, 1);
+}
+
 .top-item {
   width: 44px;
   height: 44px;

@@ -92,3 +92,77 @@ def send_message():
 
     return jsonify({"success": True})
 
+
+@chat_bp.route("/conversations/<int:conversation_id>/like", methods=["POST"])
+def like_conversation(conversation_id):
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    # Verify user is part of this conversation
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    cur.execute(
+        "SELECT id FROM conversations WHERE id = %s AND (user1_id = %s OR user2_id = %s)",
+        (conversation_id, user_id, user_id)
+    )
+    if not cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Conversation not found or access denied"}), 403
+
+    # Check if already liked
+    cur.execute(
+        "SELECT id FROM liked_chats WHERE user_id = %s AND conversation_id = %s",
+        (user_id, conversation_id)
+    )
+    if cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({"success": True, "is_liked": True})
+
+    # Add to liked chats
+    cur.execute(
+        "INSERT INTO liked_chats (user_id, conversation_id) VALUES (%s, %s)",
+        (user_id, conversation_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"success": True, "is_liked": True})
+
+
+@chat_bp.route("/conversations/<int:conversation_id>/like", methods=["DELETE"])
+def unlike_conversation(conversation_id):
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+
+    # Verify user is part of this conversation
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    cur.execute(
+        "SELECT id FROM conversations WHERE id = %s AND (user1_id = %s OR user2_id = %s)",
+        (conversation_id, user_id, user_id)
+    )
+    if not cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Conversation not found or access denied"}), 403
+
+    # Remove from liked chats
+    cur.execute(
+        "DELETE FROM liked_chats WHERE user_id = %s AND conversation_id = %s",
+        (user_id, conversation_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"success": True, "is_liked": False})
+

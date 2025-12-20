@@ -68,18 +68,20 @@ def get_conversations_for_user(user_id):
             (SELECT MAX(timestamp) FROM messages WHERE conversation_id = c.id) AS last_message_time,
             (SELECT content FROM messages 
              WHERE conversation_id = c.id 
-             ORDER BY timestamp DESC, id DESC LIMIT 1) AS last_message_content
+             ORDER BY timestamp DESC, id DESC LIMIT 1) AS last_message_content,
+            CASE WHEN lc.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_liked
         FROM conversations c
         JOIN users u
           ON u.id = CASE
               WHEN c.user1_id = %s THEN c.user2_id
               ELSE c.user1_id
             END
+        LEFT JOIN liked_chats lc ON lc.conversation_id = c.id AND lc.user_id = %s
         WHERE c.user1_id = %s OR c.user2_id = %s
         ORDER BY 
             (SELECT MAX(timestamp) FROM messages WHERE conversation_id = c.id) DESC NULLS LAST,
             c.id DESC
-    """, (user_id, user_id, user_id))
+    """, (user_id, user_id, user_id, user_id))
 
     rows = cur.fetchall()
     print(f"[DEBUG chat.py] Found {len(rows)} conversations in database")
@@ -95,24 +97,6 @@ def get_conversations_for_user(user_id):
     conversations = []
 
     for row in rows:
-        # Verify last message content
-        if row[6]:
-            cur2 = conn.cursor()
-            cur2.execute("""
-                SELECT content, timestamp, id 
-                FROM messages 
-                WHERE conversation_id = %s 
-                ORDER BY timestamp DESC, id DESC 
-                LIMIT 3
-            """, (row[0],))
-            recent_msgs = cur2.fetchall()
-            cur2.close()
-            if recent_msgs:
-                print(f"[DEBUG] Conversation {row[0]} - Last 3 messages:")
-                for msg in recent_msgs:
-                    print(f"  - {msg[0]} (timestamp: {msg[1]}, id: {msg[2]})")
-                print(f"[DEBUG] Using preview: {row[6]}")
-        
         conversations.append({
             "conversation_id": row[0],
             "other_user_id": row[1],
@@ -120,14 +104,29 @@ def get_conversations_for_user(user_id):
             "other_display_name": row[3] or row[2],  # Use display_name, fallback to username
             "other_avatar": row[4],
             "last_message_time": row[5].isoformat() if row[5] else None,
-            "last_message_content": row[6]
+            "last_message_content": row[6],
+            "is_liked": row[7] if len(row) > 7 else False
         })
-        print(f"[DEBUG] Added conversation {row[0]} with user: {row[3] or row[2]} (id: {row[1]})")
 
     cur.close()
     conn.close()
     
-    print(f"[DEBUG chat.py] Returning {len(conversations)} conversations to frontend")
+    # Debug: Log conversation order with last message times
+    print(f"[DEBUG chat_service] Returning {len(conversations)} conversations:")
+    for i, conv in enumerate(conversations):
+        print(f"  {i+1}. Conversation {conv['conversation_id']} with {conv['other_display_name']} - last_message_time: {conv['last_message_time']}")
+    
+    # SQL already sorted, but ensure Python list maintains order
+    # Sort by last_message_time DESC (most recent first), then by conversation_id DESC
+    conversations.sort(key=lambda x: (
+        x["last_message_time"] if x["last_message_time"] else "1970-01-01T00:00:00",
+        x["conversation_id"]
+    ), reverse=True)
+    
+    print(f"[DEBUG chat_service] After Python sort:")
+    for i, conv in enumerate(conversations):
+        print(f"  {i+1}. Conversation {conv['conversation_id']} with {conv['other_display_name']} - last_message_time: {conv['last_message_time']}")
+    
     return conversations
 
 
@@ -135,6 +134,8 @@ def get_messages_for_conversation(conversation_id):
     conn = get_connection()
     cur = conn.cursor()
 
+    # CRITICAL: Order by timestamp ASC (oldest first), then by id ASC (earlier messages first)
+    # This ensures messages appear in chronological order from top to bottom
     cur.execute("""
         SELECT 
             m.id, 
@@ -145,38 +146,33 @@ def get_messages_for_conversation(conversation_id):
         FROM messages m
         JOIN users u ON u.id = m.sender_id
         WHERE m.conversation_id = %s
-        ORDER BY m.timestamp ASC, m.id ASC
+        ORDER BY 
+            COALESCE(m.timestamp, '1970-01-01'::timestamp) ASC,
+            m.id ASC
     """, (conversation_id,))
 
     rows = cur.fetchall()
     cur.close()
     conn.close()
 
+    # Convert directly to JSON format - SQL already sorted correctly
     messages = []
-    message_list = []
     for row in rows:
         timestamp = row[3]
-        message_list.append({
+        messages.append({
             "id": row[0],
             "sender_id": row[1],
             "content": row[2],
-            "timestamp": timestamp,  # Keep datetime object for sorting
+            "created_at": timestamp.isoformat() if timestamp else None,
+            "timestamp": timestamp.isoformat() if timestamp else None,
             "sender_avatar": row[4]
         })
 
-    # Sort by timestamp, then by ID to ensure correct chronological order
-    # This handles cases where messages have the same timestamp
-    message_list.sort(key=lambda x: (x["timestamp"] if x["timestamp"] else None, x["id"]))
-
-    # Convert timestamps to ISO format for JSON response
-    for msg in message_list:
-        messages.append({
-            "id": msg["id"],
-            "sender_id": msg["sender_id"],
-            "content": msg["content"],
-            "created_at": msg["timestamp"].isoformat() if msg["timestamp"] else None,
-            "timestamp": msg["timestamp"].isoformat() if msg["timestamp"] else None,
-            "sender_avatar": msg["sender_avatar"]
-        })
+    # Debug: Log first and last message to verify order
+    if messages:
+        print(f"[DEBUG chat_service] Messages for conversation {conversation_id}:")
+        print(f"  First message: id={messages[0]['id']}, content='{messages[0]['content'][:20]}...', timestamp={messages[0]['timestamp']}")
+        print(f"  Last message: id={messages[-1]['id']}, content='{messages[-1]['content'][:20]}...', timestamp={messages[-1]['timestamp']}")
+        print(f"  Total messages: {len(messages)}")
 
     return messages
