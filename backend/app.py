@@ -8,11 +8,15 @@ from services.chat_service import get_conversations_for_user, get_messages_for_c
 
 
 app = Flask(__name__)
+app.secret_key = "dev-secret-change-later"
+# Configure session to be more persistent
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 24 hours
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.register_blueprint(auth_bp)
 app.register_blueprint(chat_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(group_bp)
-app.secret_key = "dev-secret-change-later"
 
 
 @app.route("/")
@@ -26,12 +30,16 @@ def app_page():
     user_id = session.get("user_id")
     if not user_id:
         # Redirect to login if not authenticated
+        print(f"[DEBUG app.py] No user_id in session, redirecting to login")
         return redirect("/")
     
     try:
+        print(f"[DEBUG app.py] Rendering app.html for user_id: {user_id}")
         return render_template("app.html")
     except Exception as e:
         print(f"[DEBUG app.py] Error rendering app.html: {e}")
+        import traceback
+        traceback.print_exc()
         return f"Error loading app: {str(e)}", 500
 
 

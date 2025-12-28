@@ -37,6 +37,7 @@ def register():
         user = get_user_by_id(result)  # register_user now returns user_id on success
         if user:
             session["user_id"] = user["id"]
+            session.permanent = True  # Make session persistent
             print(f"Session set for user_id: {user['id']}")
         return jsonify({ "success": True})
     else:
@@ -57,6 +58,8 @@ def login():
         return jsonify({ "success": False }), 401
     
     session["user_id"] = user["id"]
+    session.permanent = True  # Make session persistent
+    print(f"[DEBUG login] Session set for user_id: {user['id']}")
     return jsonify({"success": True})
 
 
