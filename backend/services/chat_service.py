@@ -204,6 +204,7 @@ def get_messages_for_conversation(conversation_id):
     
     # CRITICAL: Order by timestamp ASC (oldest first), then by id ASC (earlier messages first)
     # This ensures messages appear in chronological order from top to bottom
+    # Use NULLS LAST to handle any NULL timestamps (they should be rare)
     if message_color_column_exists:
         cur.execute("""
             SELECT 
@@ -217,7 +218,7 @@ def get_messages_for_conversation(conversation_id):
             JOIN users u ON u.id = m.sender_id
             WHERE m.conversation_id = %s
             ORDER BY 
-                COALESCE(m.timestamp, '1970-01-01'::timestamp) ASC,
+                m.timestamp ASC NULLS LAST,
                 m.id ASC
         """, (conversation_id,))
     else:
@@ -232,7 +233,7 @@ def get_messages_for_conversation(conversation_id):
             JOIN users u ON u.id = m.sender_id
             WHERE m.conversation_id = %s
             ORDER BY 
-                COALESCE(m.timestamp, '1970-01-01'::timestamp) ASC,
+                m.timestamp ASC NULLS LAST,
                 m.id ASC
         """, (conversation_id,))
 

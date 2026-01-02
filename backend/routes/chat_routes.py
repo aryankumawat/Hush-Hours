@@ -4,7 +4,6 @@ from services.chat_service import (
     get_messages_for_conversation
 )
 from database import get_connection
-from datetime import datetime
 
 chat_bp = Blueprint("chat", __name__)
 
@@ -71,7 +70,6 @@ def send_message():
 
     # Verify user is part of this conversation
     from database import get_connection
-    from datetime import datetime
     conn = get_connection()
     cur = conn.cursor()
     
@@ -108,10 +106,11 @@ def send_message():
     message_color_column_exists = cur.fetchone() is not None
     
     # Insert message with color if column exists
+    # Use PostgreSQL's NOW() for consistent timestamp precision and timezone handling
     if message_color_column_exists:
         cur.execute(
-            "INSERT INTO messages (conversation_id, sender_id, content, timestamp, message_color) VALUES (%s, %s, %s, %s, %s)",
-            (conversation_id, user_id, content, datetime.now(), message_color)
+            "INSERT INTO messages (conversation_id, sender_id, content, timestamp, message_color) VALUES (%s, %s, %s, NOW(), %s)",
+            (conversation_id, user_id, content, message_color)
         )
         print(f"[DEBUG chat_routes] Saved message with color: {message_color} (user_id: {user_id})")
         print(f"[DEBUG chat_routes] message_color_column_exists: {message_color_column_exists}")
@@ -122,14 +121,14 @@ def send_message():
             conn.commit()
             print(f"[DEBUG chat_routes] Created message_color column, now inserting with color: {message_color}")
             cur.execute(
-                "INSERT INTO messages (conversation_id, sender_id, content, timestamp, message_color) VALUES (%s, %s, %s, %s, %s)",
-                (conversation_id, user_id, content, datetime.now(), message_color)
+                "INSERT INTO messages (conversation_id, sender_id, content, timestamp, message_color) VALUES (%s, %s, %s, NOW(), %s)",
+                (conversation_id, user_id, content, message_color)
             )
         except Exception as e:
             print(f"[DEBUG chat_routes] Could not create column or insert with color: {e}")
             cur.execute(
-                "INSERT INTO messages (conversation_id, sender_id, content, timestamp) VALUES (%s, %s, %s, %s)",
-                (conversation_id, user_id, content, datetime.now())
+                "INSERT INTO messages (conversation_id, sender_id, content, timestamp) VALUES (%s, %s, %s, NOW())",
+                (conversation_id, user_id, content)
             )
             print(f"[DEBUG chat_routes] message_color column doesn't exist, message saved without color")
     
