@@ -1,4 +1,5 @@
 from database import get_connection
+from datetime import datetime
 
 def get_conversations_for_user(user_id):
     conn = get_connection()
@@ -271,11 +272,34 @@ def get_messages_for_conversation(conversation_id):
         
         messages.append(message_data)
 
+    # CRITICAL: Double-check ordering in Python as a safeguard
+    # Sort by timestamp (oldest first), then by ID (lower ID = earlier message)
+    # This ensures correct order even if database returns out of order
+    def sort_key(msg):
+        timestamp_str = msg.get('timestamp') or msg.get('created_at') or '1970-01-01T00:00:00'
+        try:
+            # Handle ISO format timestamps
+            if 'Z' in timestamp_str:
+                timestamp_str = timestamp_str.replace('Z', '+00:00')
+            timestamp = datetime.fromisoformat(timestamp_str)
+            timestamp_val = timestamp.timestamp()
+        except Exception as e:
+            # If timestamp parsing fails, use 0 and rely on ID ordering
+            print(f"[DEBUG chat_service] Error parsing timestamp '{timestamp_str}': {e}")
+            timestamp_val = 0
+        msg_id = msg.get('id', 0)
+        return (timestamp_val, msg_id)
+    
+    messages.sort(key=sort_key)
+    
     # Debug: Log first and last message to verify order
     if messages:
-        print(f"[DEBUG chat_service] Messages for conversation {conversation_id}:")
-        print(f"  First message: id={messages[0]['id']}, content='{messages[0]['content'][:20]}...', timestamp={messages[0]['timestamp']}")
-        print(f"  Last message: id={messages[-1]['id']}, content='{messages[-1]['content'][:20]}...', timestamp={messages[-1]['timestamp']}")
+        print(f"[DEBUG chat_service] Messages for conversation {conversation_id} (after Python sort):")
+        print(f"  First message: id={messages[0]['id']}, sender_id={messages[0]['sender_id']}, content='{messages[0]['content'][:20]}...', timestamp={messages[0]['timestamp']}")
+        print(f"  Last message: id={messages[-1]['id']}, sender_id={messages[-1]['sender_id']}, content='{messages[-1]['content'][:20]}...', timestamp={messages[-1]['timestamp']}")
         print(f"  Total messages: {len(messages)}")
+        # Log all message IDs and timestamps for debugging
+        print(f"  All message IDs in order: {[m['id'] for m in messages]}")
+        print(f"  All timestamps in order: {[m.get('timestamp') or m.get('created_at') for m in messages]}")
 
     return messages
