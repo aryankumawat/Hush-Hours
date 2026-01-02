@@ -117,7 +117,8 @@ function displayConversations(conversations, list) {
     console.log(`[DEBUG displayConversations] Rendering item ${index + 1}:`, conv.is_group ? `Group ${conv.group_id}: ${conv.other_display_name}` : `Conversation ${conv.conversation_id} with ${conv.other_display_name || conv.other_username}`)
     
     const item = document.createElement("div")
-    item.className = "chat-item"
+    item.className = "chat-item stagger-item"
+    item.style.animationDelay = `${index * 0.05}s`
     item.setAttribute("data-conversation-id", conv.conversation_id || "group-" + conv.group_id)
 
     const preview = conv.last_message_content || "Tap to open chat"

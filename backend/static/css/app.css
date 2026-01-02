@@ -15,6 +15,7 @@
 @import 'components/inputs.css';
 @import 'components/navigation.css';
 @import 'components/chat.css';
+@import 'components/animations.css';
 
 /* Pages */
 @import 'pages/app.css';

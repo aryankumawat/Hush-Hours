@@ -127,6 +127,10 @@ export async function loadMessages() {
   messages.forEach((msg, index) => {
     const row = document.createElement("div")
     
+    // Add animation for message appearance (subtle fade in)
+    row.style.opacity = "0"
+    row.style.animation = `fadeIn 0.3s ease-out ${index * 0.02}s forwards`
+    
     // Add data attributes for debugging and verification
     row.setAttribute('data-message-id', msg.id)
     row.setAttribute('data-message-index', index)

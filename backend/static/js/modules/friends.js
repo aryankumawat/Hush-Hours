@@ -46,8 +46,8 @@ export async function renderFriends() {
               <p>No friends yet</p>
               <p class="friends-empty-hint">Start chatting with someone to add them to your friends list</p>
             </div>
-          ` : friends.map(friend => `
-            <div class="friend-item" data-friend-id="${friend.friend_id}">
+          ` : friends.map((friend, index) => `
+            <div class="friend-item stagger-item" data-friend-id="${friend.friend_id}" style="animation-delay: ${index * 0.05}s;">
               <img class="friend-avatar" src="/static/avatars/${friend.avatar || 'default.png'}" alt="${friend.display_name}" onerror="this.src='/static/avatars/default.png'">
               <div class="friend-info">
                 <div class="friend-name">${friend.display_name}</div>
