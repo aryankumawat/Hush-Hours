@@ -243,6 +243,17 @@ document.getElementById("confirm_avatar").onclick = function () {
     return
   }
 
+  const confirmBtn = document.getElementById("confirm_avatar")
+  const originalText = confirmBtn.innerHTML
+  
+  // Show loading state
+  confirmBtn.disabled = true
+  confirmBtn.classList.add("button-loading")
+  confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating Account...'
+
+  // Show loading overlay
+  showLoadingOverlay("Creating your account...")
+
   // Debug: Log registration data before sending
   console.log("[DEBUG register] Sending registration data:", registerData)
 
@@ -251,6 +262,7 @@ document.getElementById("confirm_avatar").onclick = function () {
     headers: {
       "Content-Type": "application/json"
     },
+    credentials: "include",  // Include cookies for session
     body: JSON.stringify(registerData)
   })
   .then(function (response) {
@@ -258,12 +270,27 @@ document.getElementById("confirm_avatar").onclick = function () {
   })
   .then(function (data) {
     if (data.success) {
-      window.location.href = "/app"
+      // Success animation
+      hideLoadingOverlay()
+      showSuccessAnimation()
+      
+      // Small delay before redirect for animation
+      setTimeout(function() {
+        window.location.href = "/app"
+      }, 800)
     } else {
+      hideLoadingOverlay()
+      confirmBtn.disabled = false
+      confirmBtn.classList.remove("button-loading")
+      confirmBtn.innerHTML = originalText
       alert(data.error || "Registration failed")
     }
   })
   .catch(function (error) {
+    hideLoadingOverlay()
+    confirmBtn.disabled = false
+    confirmBtn.classList.remove("button-loading")
+    confirmBtn.innerHTML = originalText
     alert("Server error. Please try again.")
     console.error(error)
   })
@@ -279,6 +306,16 @@ document.getElementById("login_submit").onclick = function () {
     return
   }
 
+  const loginBtn = document.getElementById("login_submit")
+  const originalText = loginBtn.innerHTML
+  
+  // Show loading state
+  loginBtn.disabled = true
+  loginBtn.classList.add("button-loading")
+  loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging in...'
+
+  // Show loading overlay
+  showLoadingOverlay("Logging in...")
 
   fetch("/login", {
     method: "POST",
@@ -296,16 +333,85 @@ document.getElementById("login_submit").onclick = function () {
   })
   .then(function (data) {
     if (data.success) {
-      window.location.href = "/app"
+      // Success animation
+      hideLoadingOverlay()
+      showSuccessAnimation()
+      
+      // Small delay before redirect for animation
+      setTimeout(function() {
+        window.location.href = "/app"
+      }, 800)
     } else {
+      hideLoadingOverlay()
+      loginBtn.disabled = false
+      loginBtn.classList.remove("button-loading")
+      loginBtn.innerHTML = originalText
+      // Shake animation for error
+      document.getElementById("screen_login").classList.add("shake")
+      setTimeout(function() {
+        document.getElementById("screen_login").classList.remove("shake")
+      }, 500)
       alert(data.error || "Invalid username or password")
     }
   })
   .catch(function () {
+    hideLoadingOverlay()
+    loginBtn.disabled = false
+    loginBtn.classList.remove("button-loading")
+    loginBtn.innerHTML = originalText
     alert("Server error. Please try again.")
   })
 }
 
+
+// Loading overlay functions
+function showLoadingOverlay(text) {
+  // Remove existing overlay if any
+  const existing = document.getElementById("loading-overlay")
+  if (existing) {
+    existing.remove()
+  }
+  
+  const overlay = document.createElement("div")
+  overlay.id = "loading-overlay"
+  overlay.className = "loading-overlay"
+  overlay.innerHTML = `
+    <div class="loading-spinner"></div>
+    <div class="loading-overlay-text">${text || "Loading..."}</div>
+  `
+  document.body.appendChild(overlay)
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById("loading-overlay")
+  if (overlay) {
+    overlay.style.animation = "fadeOut 0.3s ease-out"
+    setTimeout(function() {
+      overlay.remove()
+    }, 300)
+  }
+}
+
+function showSuccessAnimation() {
+  const overlay = document.createElement("div")
+  overlay.id = "success-overlay"
+  overlay.className = "loading-overlay"
+  overlay.style.background = "rgba(34, 197, 94, 0.9)"
+  overlay.innerHTML = `
+    <div style="width: 80px; height: 80px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; animation: scaleIn 0.3s ease-out;">
+      <i class="fa-solid fa-check" style="font-size: 40px; color: #22c55e; animation: checkmark-animation 0.5s ease-out;"></i>
+    </div>
+    <div class="loading-overlay-text">Success!</div>
+  `
+  document.body.appendChild(overlay)
+  
+  setTimeout(function() {
+    overlay.style.animation = "fadeOut 0.3s ease-out"
+    setTimeout(function() {
+      overlay.remove()
+    }, 300)
+  }, 600)
+}
 
 // initial screen
 show_screen("screen_choice")

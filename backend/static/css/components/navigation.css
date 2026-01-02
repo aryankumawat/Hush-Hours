@@ -294,6 +294,41 @@
   pointer-events: none;
 }
 
+/* Back Button in Page Header */
+.page-header .back-button {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--gradient-primary);
+  color: var(--text-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-size: 18px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
+  margin-right: auto;
+}
+
+.page-header .back-button:hover {
+  transform: translateX(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.page-header .back-button:active {
+  transform: translateX(0) scale(0.98);
+}
+
+.page-header .back-button i {
+  font-size: 18px;
+}
+
 /* Hide page header when in chat view (title is in top-bar) */
 .card.chat-active .page-header {
   display: none;
