@@ -11,6 +11,13 @@ export async function renderFriends() {
       existingBtn.remove()
     }
   }
+  
+  const content = dom.content()
+  if (!content) {
+    console.error("[DEBUG friends] Content element not found")
+    return
+  }
+  
   try {
     // Fetch friends list
     const response = await fetch("/friends", { credentials: "include" })
@@ -24,10 +31,16 @@ export async function renderFriends() {
     console.log("[DEBUG friends] Received friends:", friends)
     console.log("[DEBUG friends] Friends count:", friends.length)
     
-    dom.content().className = "app-content friends-content"
+    // Set class first and ensure content is visible (remove all animation classes)
+    content.className = "app-content friends-content"
+    content.classList.remove("fade-out", "fade-in", "content-slide-up")
+    // Force visibility with inline styles to override any CSS
+    content.style.opacity = "1"
+    content.style.transform = "translateY(0)"
+    content.style.display = "block"
     
     // Render search bar and friends list
-    dom.content().innerHTML = `
+    content.innerHTML = `
       <div class="friends-search-container">
         <div class="friends-search-box">
           <i class="fa-solid fa-search"></i>
@@ -73,15 +86,35 @@ export async function renderFriends() {
     // Setup event listeners
     setupFriendListeners()
     
+    // Ensure content is visible after rendering (double-check)
+    requestAnimationFrame(() => {
+      if (content) {
+        content.classList.remove("fade-out")
+        content.style.opacity = "1"
+        content.style.transform = "translateY(0)"
+        content.style.display = "block"
+        // Add fade-in for smooth appearance
+        setTimeout(() => {
+          content.classList.add("fade-in")
+        }, 10)
+      }
+    })
+    
+    // Return promise for proper async handling
+    return Promise.resolve()
+    
   } catch (error) {
     console.error("[DEBUG friends] Error rendering friends:", error)
-    dom.content().className = "app-content friends-content"
-    dom.content().innerHTML = `
-      <div class="friends-error">
-        <p>Error loading friends</p>
-        <button class="retry-btn" onclick="location.reload()">Retry</button>
-      </div>
-    `
+    if (content) {
+      content.className = "app-content friends-content"
+      content.innerHTML = `
+        <div class="friends-error">
+          <p>Error loading friends</p>
+          <button class="retry-btn" onclick="location.reload()">Retry</button>
+        </div>
+      `
+    }
+    return Promise.reject(error)
   }
 }
 

@@ -34,11 +34,6 @@ export function showTab(tab) {
   const pageHeader = document.querySelector(".page-header")
   const content = dom.content()
   
-  // Fade out current content
-  if (content) {
-    content.classList.add("fade-out")
-  }
-  
   // Update active nav item with animation
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active')
@@ -55,8 +50,44 @@ export function showTab(tab) {
   // Add/remove back button based on current tab
   updateBackButton(tab)
   
-  // Wait for fade out, then change content
-  setTimeout(() => {
+  // For friends tab, render immediately without fade-out to prevent disappearing
+  if (tab === "friends") {
+    if (content) {
+      content.classList.remove("fade-out") // Remove fade-out if present
+      content.style.opacity = "1" // Ensure visible
+    }
+    renderTabContent(tab, content, topBar)
+    return
+  }
+  
+  // For other tabs, use fade-out transition
+  if (content && content.innerHTML.trim() !== "" && !content.classList.contains("fade-out")) {
+    content.classList.add("fade-out")
+    // Wait for fade out, then change content
+    setTimeout(() => {
+      renderTabContent(tab, content, topBar)
+    }, 150)
+  } else {
+    // No existing content or already fading, render immediately
+    if (content) {
+      content.classList.remove("fade-out")
+      content.style.opacity = "1"
+    }
+    renderTabContent(tab, content, topBar)
+  }
+}
+
+function renderTabContent(tab, content, topBar) {
+  // Remove fade-out class immediately to ensure content is visible
+  if (content) {
+    content.classList.remove("fade-out", "fade-in", "content-slide-up")
+    // Force content to be visible before rendering
+    content.style.opacity = "1"
+    content.style.transform = "translateY(0)"
+    content.style.display = "" // Ensure display is not none
+  }
+  
+  // Render content
     if (tab === "chats") {
       // Show top bar only for chats
       if (topBar) {
@@ -126,14 +157,21 @@ export function showTab(tab) {
       dom.pageTitle().innerText = "Friends"
       // Clear active conversation when going to friends
       state.ACTIVE_CONVERSATION_ID = null
-      renderFriends()
-      // Fade in new content
-      if (content) {
-        setTimeout(() => {
-          content.classList.remove("fade-out")
-          content.classList.add("fade-in", "content-slide-up")
-        }, 50)
-      }
+      // Render friends
+      renderFriends().then(() => {
+        // Fade in new content after rendering completes
+        if (content) {
+          requestAnimationFrame(() => {
+            content.classList.add("fade-in", "content-slide-up")
+          })
+        }
+      }).catch(() => {
+        // Even on error, ensure content is visible
+        if (content) {
+          content.style.opacity = "1"
+          content.style.transform = "translateY(0)"
+        }
+      })
       return
     }
 
@@ -152,12 +190,10 @@ export function showTab(tab) {
     
     // Fade in new content for all tabs
     if (content) {
-      setTimeout(() => {
-        content.classList.remove("fade-out")
+      requestAnimationFrame(() => {
         content.classList.add("fade-in", "content-slide-up")
-      }, 50)
+      })
     }
-  }, 200) // Wait 200ms for fade out animation
 }
 
 // Function to add/remove back button in page header
