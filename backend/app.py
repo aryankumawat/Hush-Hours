@@ -6,6 +6,7 @@ from routes.user_routes import user_bp
 from routes.group_routes import group_bp
 from services.auth_service import register_user, login_user, get_user_by_id
 from services.chat_service import get_conversations_for_user, get_messages_for_conversation
+from database import init_connection_pool, close_all_connections
 
 
 # Get the directory where this file is located
@@ -20,6 +21,17 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(chat_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(group_bp)
+
+# Initialize database connection pool on startup
+try:
+    init_connection_pool()
+    print("[DEBUG app] Database connection pool initialized")
+except Exception as e:
+    print(f"[ERROR app] Failed to initialize database pool: {e}")
+
+# Cleanup on app shutdown
+import atexit
+atexit.register(close_all_connections)
 
 
 @app.route("/")
