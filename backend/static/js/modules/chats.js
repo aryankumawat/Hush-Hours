@@ -2,6 +2,15 @@ import { state } from "../state.js"
 import { fetchConversations, likeConversation, unlikeConversation, likeGroup, unlikeGroup } from "./api.js"
 import { loadMessages, sendMessage } from "./messages.js"
 import { dom } from "../utils/dom.js"
+import { 
+  startRecording, 
+  stopRecording, 
+  cancelRecording, 
+  isRecording,
+  startRecordingTimer,
+  clearRecordingTimer,
+  isRecordingSupported
+} from "./voiceRecorder.js"
 
 export async function renderChats() {
   dom.topBar().innerHTML = `
@@ -369,8 +378,18 @@ export function renderChatView() {
     <div class="chat-window">
       <div class="messages" id="messages"></div>
       <div class="chat-input">
+        <button id="voice-button" class="voice-button" title="Hold to record voice message">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
         <input id="message-input" placeholder="Type a message">
         <button id="send-button">↑</button>
+      </div>
+      <div id="recording-indicator" class="recording-indicator" style="display: none;">
+        <div class="recording-pulse"></div>
+        <span id="recording-time">0:00</span>
+        <button id="cancel-recording" class="cancel-recording-btn" title="Cancel">
+          <i class="fa-solid fa-times"></i>
+        </button>
       </div>
     </div>
   `
@@ -379,6 +398,9 @@ export function renderChatView() {
   document.getElementById("message-input").onkeypress = e => {
     if (e.key === "Enter") sendMessage()
   }
+
+  // Setup voice recording
+  setupVoiceRecording()
 
   loadMessages()
 }
@@ -573,4 +595,165 @@ function getRandomEmoji(groupId) {
   // Use groupId as seed for consistent emoji per group
   const emojis = ['🎉', '🌟', '🔥', '💫', '⚡', '🎊', '✨', '🎈', '🎁', '🎯', '🎪', '🎭', '🎨', '🎬', '🎮', '🎲', '🎸', '🎺', '🎻', '🥁']
   return emojis[groupId % emojis.length]
+}
+
+// Voice Recording Setup
+function setupVoiceRecording() {
+  const voiceButton = document.getElementById("voice-button")
+  const recordingIndicator = document.getElementById("recording-indicator")
+  const recordingTime = document.getElementById("recording-time")
+  const cancelBtn = document.getElementById("cancel-recording")
+  
+  if (!voiceButton || !isRecordingSupported()) {
+    // Hide voice button if not supported
+    if (voiceButton) voiceButton.style.display = "none"
+    return
+  }
+  
+  let isPressing = false
+  let pressTimer = null
+  
+  // Mouse/Touch events for recording
+  const startPress = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (isPressing) return
+    isPressing = true
+    
+    // Start recording after short delay (to distinguish from click)
+    pressTimer = setTimeout(async () => {
+      const started = await startRecording()
+      if (started) {
+        // Show recording indicator
+        if (recordingIndicator) recordingIndicator.style.display = "flex"
+        voiceButton.classList.add("recording")
+        
+        // Start timer
+        startRecordingTimer((duration) => {
+          const minutes = Math.floor(duration / 60)
+          const seconds = duration % 60
+          if (recordingTime) {
+            recordingTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`
+          }
+        })
+      }
+    }, 200) // 200ms delay to distinguish from click
+  }
+  
+  const endPress = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!isPressing) return
+    isPressing = false
+    
+    clearTimeout(pressTimer)
+    
+    // If recording, stop and send
+    if (isRecording()) {
+      try {
+        const recording = await stopRecording()
+        clearRecordingTimer()
+        
+        // Hide recording indicator
+        if (recordingIndicator) recordingIndicator.style.display = "none"
+        voiceButton.classList.remove("recording")
+        
+        // Send voice message
+        if (recording.duration >= 1) { // At least 1 second
+          await sendVoiceMessage(recording.blob, recording.duration)
+        } else {
+          alert("Recording too short. Please record at least 1 second.")
+        }
+      } catch (error) {
+        console.error("[DEBUG voiceRecorder] Error stopping recording:", error)
+        alert("Failed to process recording. Please try again.")
+        if (recordingIndicator) recordingIndicator.style.display = "none"
+        voiceButton.classList.remove("recording")
+        clearRecordingTimer()
+      }
+    }
+  }
+  
+  // Mouse events
+  voiceButton.onmousedown = startPress
+  voiceButton.onmouseup = endPress
+  voiceButton.onmouseleave = endPress // Stop if mouse leaves button
+  
+  // Touch events for mobile
+  voiceButton.ontouchstart = startPress
+  voiceButton.ontouchend = endPress
+  voiceButton.ontouchcancel = endPress
+  
+  // Cancel button
+  if (cancelBtn) {
+    cancelBtn.onclick = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (isRecording()) {
+        cancelRecording()
+        clearRecordingTimer()
+        if (recordingIndicator) recordingIndicator.style.display = "none"
+        voiceButton.classList.remove("recording")
+      }
+    }
+  }
+}
+
+// Send voice message
+async function sendVoiceMessage(audioBlob, duration) {
+  if (!state.ACTIVE_CONVERSATION_ID) return
+  
+  try {
+    // Convert blob to base64
+    const reader = new FileReader()
+    const base64Audio = await new Promise((resolve, reject) => {
+      reader.onloadend = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(audioBlob)
+    })
+    
+    // Send to backend
+    const response = await fetch("/messages/voice", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        conversation_id: state.ACTIVE_CONVERSATION_ID,
+        audio_data: base64Audio,
+        duration: duration
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error("Failed to send voice message")
+    }
+    
+    // Reload messages
+    await loadMessages()
+    
+    // Refresh chat list if needed
+    if (state.CAME_FROM_FRIENDS) {
+      import("./chats.js").then(({ renderChats }) => {
+        setTimeout(() => {
+          renderChats().catch(err => console.error("[DEBUG] Error refreshing chats:", err))
+        }, 500)
+      })
+    }
+    
+    // Scroll to bottom
+    const messagesDiv = dom.messages()
+    if (messagesDiv) {
+      setTimeout(() => {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight
+      }, 100)
+    }
+    
+  } catch (error) {
+    console.error("[DEBUG voiceRecorder] Error sending voice message:", error)
+    alert("Failed to send voice message. Please try again.")
+  }
 }
