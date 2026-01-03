@@ -2,6 +2,70 @@ import { state } from "../state.js"
 import { fetchMessages, sendMessageApi } from "./api.js"
 import { dom } from "../utils/dom.js"
 
+// Create audio player component
+function createAudioPlayer(audioUrl, duration, backgroundColor, textColor) {
+  const audioContainer = document.createElement("div")
+  audioContainer.className = "audio-message"
+  audioContainer.style.cssText = `background: rgba(255, 255, 255, 0.15) !important;`
+  
+  // Play button
+  const playButton = document.createElement("button")
+  playButton.className = "audio-play-button"
+  playButton.innerHTML = '<i class="fa-solid fa-play"></i>'
+  playButton.style.cssText = `background: ${backgroundColor} !important; color: ${textColor} !important;`
+  
+  // Audio element (hidden)
+  const audioElement = document.createElement("audio")
+  audioElement.src = audioUrl
+  audioElement.preload = "metadata"
+  
+  let isPlaying = false
+  
+  playButton.onclick = (e) => {
+    e.stopPropagation()
+    
+    if (isPlaying) {
+      // Pause
+      audioElement.pause()
+      playButton.innerHTML = '<i class="fa-solid fa-play"></i>'
+      playButton.classList.remove("playing")
+      isPlaying = false
+    } else {
+      // Play
+      audioElement.play()
+      playButton.innerHTML = '<i class="fa-solid fa-pause"></i>'
+      playButton.classList.add("playing")
+      isPlaying = true
+    }
+  }
+  
+  audioElement.onended = () => {
+    playButton.innerHTML = '<i class="fa-solid fa-play"></i>'
+    playButton.classList.remove("playing")
+    isPlaying = false
+  }
+  
+  audioElement.onpause = () => {
+    playButton.innerHTML = '<i class="fa-solid fa-play"></i>'
+    playButton.classList.remove("playing")
+    isPlaying = false
+  }
+  
+  // Duration display
+  const durationSpan = document.createElement("span")
+  durationSpan.className = "audio-duration"
+  const minutes = Math.floor(duration / 60)
+  const seconds = duration % 60
+  durationSpan.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`
+  durationSpan.style.cssText = `color: ${textColor} !important;`
+  
+  audioContainer.appendChild(playButton)
+  audioContainer.appendChild(audioElement)
+  audioContainer.appendChild(durationSpan)
+  
+  return audioContainer
+}
+
 // Function to determine if a color is light or dark
 function isLightColor(color) {
   if (!color || typeof color !== 'string') {
@@ -165,12 +229,18 @@ export async function loadMessages() {
         background-color: ${messageColor} !important;
         color: ${textColor} !important;
       `
-      // Also set on the text element itself to ensure it applies
-      const textP = document.createElement("p")
-      textP.className = "text"
-      textP.style.cssText = `color: ${textColor} !important; margin: 0; padding: 0;`
-      textP.textContent = msg.content
-      messageDiv.appendChild(textP)
+      // Check if this is an audio message
+      if (msg.message_type === "audio" && msg.audio_file_path) {
+        const audioPlayer = createAudioPlayer(msg.audio_file_path, msg.audio_duration || 0, messageColor, textColor)
+        messageDiv.appendChild(audioPlayer)
+      } else {
+        // Regular text message
+        const textP = document.createElement("p")
+        textP.className = "text"
+        textP.style.cssText = `color: ${textColor} !important; margin: 0; padding: 0;`
+        textP.textContent = msg.content
+        messageDiv.appendChild(textP)
+      }
       
       const avatarImg = document.createElement("img")
       avatarImg.className = "message-avatar"
@@ -242,12 +312,18 @@ export async function loadMessages() {
         color: ${textColor} !important;
       `
       
-      // Also set on the text element itself to ensure it applies
-      const textP = document.createElement("p")
-      textP.className = "text"
-      textP.style.cssText = `color: ${textColor} !important; margin: 0; padding: 0;`
-      textP.textContent = msg.content
-      messageDiv.appendChild(textP)
+      // Check if this is an audio message
+      if (msg.message_type === "audio" && msg.audio_file_path) {
+        const audioPlayer = createAudioPlayer(msg.audio_file_path, msg.audio_duration || 0, messageColor, textColor)
+        messageDiv.appendChild(audioPlayer)
+      } else {
+        // Regular text message
+        const textP = document.createElement("p")
+        textP.className = "text"
+        textP.style.cssText = `color: ${textColor} !important; margin: 0; padding: 0;`
+        textP.textContent = msg.content
+        messageDiv.appendChild(textP)
+      }
       
       row.appendChild(avatarImg)
       row.appendChild(messageDiv)
