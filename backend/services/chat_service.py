@@ -207,7 +207,6 @@ def get_messages_for_conversation(conversation_id):
     # This ensures messages appear in chronological order from top to bottom
     # Use NULLS LAST to handle any NULL timestamps (they should be rare)
     if message_color_column_exists:
-    elif message_color_column_exists:
         cur.execute("""
             SELECT 
                 m.id, 
