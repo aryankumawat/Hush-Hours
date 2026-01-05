@@ -50,35 +50,21 @@ export function showTab(tab) {
   // Add/remove back button based on current tab
   updateBackButton(tab)
   
-  // For friends tab, completely bypass fade-out logic
+  // For friends tab, completely bypass ALL animations - no fade, no transitions
   if (tab === "friends") {
     if (content) {
-      // Remove all animation classes immediately
+      // Remove ALL animation classes
       content.classList.remove("fade-out", "fade-in", "content-slide-up")
-      // Force visibility with !important-level inline styles and disable transitions
+      // Set visibility immediately with no transitions
       content.style.cssText = `
         opacity: 1 !important;
-        transform: translateY(0) !important;
-        display: block !important;
-        visibility: visible !important;
-        transition: none !important;
-      `
-      // Force immediate style application
-      void content.offsetHeight
-      // Set a temporary loading state to prevent empty content
-      if (!content.innerHTML.trim()) {
-        content.innerHTML = '<div style="padding: 20px; text-align: center;">Loading friends...</div>'
-      }
-      // Re-apply styles after innerHTML change
-      content.style.cssText = `
-        opacity: 1 !important;
-        transform: translateY(0) !important;
+        transform: none !important;
         display: block !important;
         visibility: visible !important;
         transition: none !important;
       `
     }
-    // Render immediately without any delay
+    // Render immediately - no delays, no animations
     renderTabContent(tab, content, topBar)
     return
   }

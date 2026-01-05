@@ -18,20 +18,17 @@ export async function renderFriends() {
     return
   }
   
-  // CRITICAL: Set visibility IMMEDIATELY before any async operations
-  // This prevents any fade-out from happening
+  // NO ANIMATIONS - Set visibility immediately, no transitions
   content.className = "app-content friends-content"
   content.classList.remove("fade-out", "fade-in", "content-slide-up")
-  // Disable CSS transitions completely for friends content
+  // Disable ALL transitions and ensure visibility
   content.style.cssText = `
     opacity: 1 !important;
-    transform: translateY(0) !important;
+    transform: none !important;
     display: block !important;
     visibility: visible !important;
     transition: none !important;
   `
-  // Force a reflow to apply styles immediately
-  void content.offsetHeight
   
   try {
     // Fetch friends list
@@ -46,11 +43,11 @@ export async function renderFriends() {
     console.log("[DEBUG friends] Received friends:", friends)
     console.log("[DEBUG friends] Friends count:", friends.length)
     
-    // Re-apply visibility styles right before setting innerHTML
+    // Re-apply visibility styles right before setting innerHTML - NO ANIMATIONS
     content.classList.remove("fade-out", "fade-in", "content-slide-up")
     content.style.cssText = `
       opacity: 1 !important;
-      transform: translateY(0) !important;
+      transform: none !important;
       display: block !important;
       visibility: visible !important;
       transition: none !important;
@@ -103,33 +100,17 @@ export async function renderFriends() {
     // Setup event listeners
     setupFriendListeners()
     
-    // Ensure content is visible after rendering - use !important to override everything
-    // Use multiple requestAnimationFrame calls to ensure visibility
-    // Also use setInterval as a watchdog to keep content visible
-    const keepVisible = () => {
-      if (content) {
-        content.classList.remove("fade-out", "fade-in", "content-slide-up")
-        content.style.cssText = `
-          opacity: 1 !important;
-          transform: translateY(0) !important;
-          display: block !important;
-          visibility: visible !important;
-          transition: none !important;
-        `
-      }
+    // NO ANIMATIONS - Just ensure content is visible once
+    if (content) {
+      content.classList.remove("fade-out", "fade-in", "content-slide-up")
+      content.style.cssText = `
+        opacity: 1 !important;
+        transform: none !important;
+        display: block !important;
+        visibility: visible !important;
+        transition: none !important;
+      `
     }
-    
-    // Immediate check
-    keepVisible()
-    
-    // Multiple animation frames
-    requestAnimationFrame(keepVisible)
-    requestAnimationFrame(() => requestAnimationFrame(keepVisible))
-    requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(keepVisible)))
-    
-    // Watchdog interval to keep content visible (runs for 2 seconds)
-    const watchdog = setInterval(keepVisible, 50)
-    setTimeout(() => clearInterval(watchdog), 2000)
     
     // Return promise for proper async handling
     return Promise.resolve()

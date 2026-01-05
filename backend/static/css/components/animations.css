@@ -300,6 +300,12 @@
   transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
+/* NO transitions for friends content */
+.app-content.friends-content {
+  transition: none !important;
+  animation: none !important;
+}
+
 .app-content.fade-out {
   opacity: 0;
   transform: translateY(10px);
