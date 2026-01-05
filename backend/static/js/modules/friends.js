@@ -34,10 +34,11 @@ export async function renderFriends() {
     // Set class first and ensure content is visible (remove all animation classes)
     content.className = "app-content friends-content"
     content.classList.remove("fade-out", "fade-in", "content-slide-up")
-    // Force visibility with inline styles to override any CSS
+    // Force visibility with inline styles to override any CSS - do this BEFORE setting innerHTML
     content.style.opacity = "1"
     content.style.transform = "translateY(0)"
     content.style.display = "block"
+    content.style.visibility = "visible"
     
     // Render search bar and friends list
     content.innerHTML = `
@@ -87,17 +88,26 @@ export async function renderFriends() {
     setupFriendListeners()
     
     // Ensure content is visible after rendering (double-check)
+    // Use multiple requestAnimationFrame calls to ensure visibility
     requestAnimationFrame(() => {
       if (content) {
         content.classList.remove("fade-out")
         content.style.opacity = "1"
         content.style.transform = "translateY(0)"
         content.style.display = "block"
-        // Add fade-in for smooth appearance
-        setTimeout(() => {
-          content.classList.add("fade-in")
-        }, 10)
+        content.style.visibility = "visible"
+        // Force a reflow to ensure styles are applied
+        void content.offsetHeight
       }
+      // Second frame to add animation
+      requestAnimationFrame(() => {
+        if (content) {
+          content.style.opacity = "1"
+          content.style.display = "block"
+          content.style.visibility = "visible"
+          content.classList.add("fade-in")
+        }
+      })
     })
     
     // Return promise for proper async handling

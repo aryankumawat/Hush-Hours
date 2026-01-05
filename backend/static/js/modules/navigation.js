@@ -50,11 +50,18 @@ export function showTab(tab) {
   // Add/remove back button based on current tab
   updateBackButton(tab)
   
-  // For friends tab, render immediately without fade-out to prevent disappearing
+  // For friends tab, ensure content is visible before rendering
   if (tab === "friends") {
     if (content) {
-      content.classList.remove("fade-out") // Remove fade-out if present
-      content.style.opacity = "1" // Ensure visible
+      // Remove all animation classes and ensure visibility
+      content.classList.remove("fade-out", "fade-in", "content-slide-up")
+      content.style.opacity = "1"
+      content.style.transform = "translateY(0)"
+      content.style.display = "block"
+      // Set a temporary loading state to prevent empty content
+      if (!content.innerHTML.trim()) {
+        content.innerHTML = '<div style="padding: 20px; text-align: center;">Loading friends...</div>'
+      }
     }
     renderTabContent(tab, content, topBar)
     return
@@ -85,6 +92,27 @@ function renderTabContent(tab, content, topBar) {
     content.style.opacity = "1"
     content.style.transform = "translateY(0)"
     content.style.display = "" // Ensure display is not none
+    content.style.visibility = "visible"
+    // For friends tab specifically, prevent any fade-out
+    if (tab === "friends") {
+      // Use a MutationObserver to prevent fade-out class from being added
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            if (content.classList.contains('fade-out')) {
+              content.classList.remove('fade-out')
+              content.style.opacity = "1"
+              content.style.visibility = "visible"
+            }
+          }
+        })
+      })
+      observer.observe(content, { attributes: true, attributeFilter: ['class'] })
+      // Store observer to clean up later if needed
+      if (!content._friendsObserver) {
+        content._friendsObserver = observer
+      }
+    }
   }
   
   // Render content
@@ -157,19 +185,33 @@ function renderTabContent(tab, content, topBar) {
       dom.pageTitle().innerText = "Friends"
       // Clear active conversation when going to friends
       state.ACTIVE_CONVERSATION_ID = null
+      // Ensure content is visible before async call
+      if (content) {
+        content.style.opacity = "1"
+        content.style.transform = "translateY(0)"
+        content.style.display = "block"
+        content.classList.remove("fade-out")
+      }
       // Render friends
       renderFriends().then(() => {
-        // Fade in new content after rendering completes
+        // Ensure content remains visible after rendering
         if (content) {
           requestAnimationFrame(() => {
+            content.style.opacity = "1"
+            content.style.transform = "translateY(0)"
+            content.style.display = "block"
+            content.classList.remove("fade-out")
             content.classList.add("fade-in", "content-slide-up")
           })
         }
-      }).catch(() => {
+      }).catch((error) => {
+        console.error("[DEBUG navigation] Error rendering friends:", error)
         // Even on error, ensure content is visible
         if (content) {
           content.style.opacity = "1"
           content.style.transform = "translateY(0)"
+          content.style.display = "block"
+          content.classList.remove("fade-out")
         }
       })
       return
