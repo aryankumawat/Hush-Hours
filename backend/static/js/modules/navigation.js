@@ -191,57 +191,8 @@ function renderTabContent(tab, content, topBar) {
         // Force immediate style application
         void content.offsetHeight
       }
-      // Render friends - don't add any fade-in classes that might interfere
-      renderFriends().then(() => {
-        // Ensure content remains visible after rendering - use multiple checks
-        if (content) {
-          // Immediate check
-          content.classList.remove("fade-out")
-          content.style.cssText = `
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-            display: block !important;
-            visibility: visible !important;
-          `
-          // Check again after a frame
-          requestAnimationFrame(() => {
-            if (content) {
-              content.classList.remove("fade-out")
-              content.style.cssText = `
-                opacity: 1 !important;
-                transform: translateY(0) !important;
-                display: block !important;
-                visibility: visible !important;
-              `
-            }
-          })
-          // Final check after another frame
-          requestAnimationFrame(() => {
-            if (content) {
-              content.classList.remove("fade-out")
-              content.style.cssText = `
-                opacity: 1 !important;
-                transform: translateY(0) !important;
-                display: block !important;
-                visibility: visible !important;
-              `
-            }
-          })
-        }
-      }).catch((error) => {
-        console.error("[DEBUG navigation] Error rendering friends:", error)
-        // Even on error, ensure content is visible
-        if (content) {
-          content.classList.remove("fade-out")
-          content.style.cssText = `
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-            display: block !important;
-            visibility: visible !important;
-            transition: none !important;
-          `
-        }
-      })
+      // NO ANIMATIONS - just render friends immediately
+      renderFriends()
       return
     }
 
