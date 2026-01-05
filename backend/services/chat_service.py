@@ -203,36 +203,10 @@ def get_messages_for_conversation(conversation_id):
     """)
     message_color_column_exists = cur.fetchone() is not None
     
-    # Check if audio columns exist
-    cur.execute("""
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name='messages' AND column_name='message_type'
-    """)
-    audio_columns_exist = cur.fetchone() is not None
-    
     # CRITICAL: Order by timestamp ASC (oldest first), then by id ASC (earlier messages first)
     # This ensures messages appear in chronological order from top to bottom
     # Use NULLS LAST to handle any NULL timestamps (they should be rare)
-    if message_color_column_exists and audio_columns_exist:
-        cur.execute("""
-            SELECT 
-                m.id, 
-                m.sender_id, 
-                m.content, 
-                m.timestamp,
-                u.avatar_key,
-                COALESCE(m.message_color, '#6b7280') AS message_color,
-                COALESCE(m.message_type, 'text') AS message_type,
-                m.audio_file_path,
-                m.audio_duration
-            FROM messages m
-            JOIN users u ON u.id = m.sender_id
-            WHERE m.conversation_id = %s
-            ORDER BY 
-                m.timestamp ASC NULLS LAST,
-                m.id ASC
-        """, (conversation_id,))
+    if message_color_column_exists:
     elif message_color_column_exists:
         cur.execute("""
             SELECT 
@@ -292,15 +266,6 @@ def get_messages_for_conversation(conversation_id):
         else:
             message_data["message_color"] = "#6b7280"  # Default grey
         
-        # Add audio fields if columns exist
-        if audio_columns_exist and len(row) > 7:
-            message_data["message_type"] = row[6] if row[6] else "text"
-            message_data["audio_file_path"] = row[7] if len(row) > 7 and row[7] else None
-            message_data["audio_duration"] = row[8] if len(row) > 8 and row[8] else None
-        else:
-            message_data["message_type"] = "text"
-            message_data["audio_file_path"] = None
-            message_data["audio_duration"] = None
         
         messages.append(message_data)
 
