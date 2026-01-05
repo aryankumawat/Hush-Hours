@@ -91,7 +91,8 @@ export async function renderFriends() {
     
     // Ensure content is visible after rendering - use !important to override everything
     // Use multiple requestAnimationFrame calls to ensure visibility
-    requestAnimationFrame(() => {
+    // Also use setInterval as a watchdog to keep content visible
+    const keepVisible = () => {
       if (content) {
         content.classList.remove("fade-out", "fade-in", "content-slide-up")
         content.style.cssText = `
@@ -99,35 +100,22 @@ export async function renderFriends() {
           transform: translateY(0) !important;
           display: block !important;
           visibility: visible !important;
+          transition: none !important;
         `
-        // Force a reflow to ensure styles are applied
-        void content.offsetHeight
       }
-      // Second frame to double-check
-      requestAnimationFrame(() => {
-        if (content) {
-          content.classList.remove("fade-out")
-          content.style.cssText = `
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-            display: block !important;
-            visibility: visible !important;
-          `
-        }
-      })
-      // Third frame for extra safety
-      requestAnimationFrame(() => {
-        if (content) {
-          content.classList.remove("fade-out")
-          content.style.cssText = `
-            opacity: 1 !important;
-            transform: translateY(0) !important;
-            display: block !important;
-            visibility: visible !important;
-          `
-        }
-      })
-    })
+    }
+    
+    // Immediate check
+    keepVisible()
+    
+    // Multiple animation frames
+    requestAnimationFrame(keepVisible)
+    requestAnimationFrame(() => requestAnimationFrame(keepVisible))
+    requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(keepVisible)))
+    
+    // Watchdog interval to keep content visible (runs for 2 seconds)
+    const watchdog = setInterval(keepVisible, 50)
+    setTimeout(() => clearInterval(watchdog), 2000)
     
     // Return promise for proper async handling
     return Promise.resolve()

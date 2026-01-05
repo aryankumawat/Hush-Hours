@@ -55,17 +55,28 @@ export function showTab(tab) {
     if (content) {
       // Remove all animation classes immediately
       content.classList.remove("fade-out", "fade-in", "content-slide-up")
-      // Force visibility with !important-level inline styles
+      // Force visibility with !important-level inline styles and disable transitions
       content.style.cssText = `
         opacity: 1 !important;
         transform: translateY(0) !important;
         display: block !important;
         visibility: visible !important;
+        transition: none !important;
       `
+      // Force immediate style application
+      void content.offsetHeight
       // Set a temporary loading state to prevent empty content
       if (!content.innerHTML.trim()) {
         content.innerHTML = '<div style="padding: 20px; text-align: center;">Loading friends...</div>'
       }
+      // Re-apply styles after innerHTML change
+      content.style.cssText = `
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+        display: block !important;
+        visibility: visible !important;
+        transition: none !important;
+      `
     }
     // Render immediately without any delay
     renderTabContent(tab, content, topBar)
@@ -93,13 +104,14 @@ function renderTabContent(tab, content, topBar) {
   // Remove fade-out class immediately to ensure content is visible
   if (content) {
     content.classList.remove("fade-out", "fade-in", "content-slide-up")
-    // For friends tab, use !important styles to override everything
+    // For friends tab, use !important styles to override everything and disable transitions
     if (tab === "friends") {
       content.style.cssText = `
         opacity: 1 !important;
         transform: translateY(0) !important;
         display: block !important;
         visibility: visible !important;
+        transition: none !important;
       `
       // Use a MutationObserver to prevent fade-out class and any opacity changes
       if (content._friendsObserver) {
@@ -126,6 +138,7 @@ function renderTabContent(tab, content, topBar) {
                   transform: translateY(0) !important;
                   display: block !important;
                   visibility: visible !important;
+                  transition: none !important;
                 `
               }
             }
@@ -217,7 +230,7 @@ function renderTabContent(tab, content, topBar) {
       dom.pageTitle().innerText = "Friends"
       // Clear active conversation when going to friends
       state.ACTIVE_CONVERSATION_ID = null
-      // Force content to be visible with maximum priority
+      // Force content to be visible with maximum priority and disable transitions
       if (content) {
         content.classList.remove("fade-out", "fade-in", "content-slide-up")
         content.style.cssText = `
@@ -225,7 +238,10 @@ function renderTabContent(tab, content, topBar) {
           transform: translateY(0) !important;
           display: block !important;
           visibility: visible !important;
+          transition: none !important;
         `
+        // Force immediate style application
+        void content.offsetHeight
       }
       // Render friends - don't add any fade-in classes that might interfere
       renderFriends().then(() => {
@@ -274,6 +290,7 @@ function renderTabContent(tab, content, topBar) {
             transform: translateY(0) !important;
             display: block !important;
             visibility: visible !important;
+            transition: none !important;
           `
         }
       })

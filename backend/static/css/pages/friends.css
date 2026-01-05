@@ -6,6 +6,28 @@
   padding: var(--spacing-lg);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Disable all transitions to prevent disappearing */
+  transition: none !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Prevent fade-out on friends content */
+.friends-content.fade-out {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  transition: none !important;
+}
+
+/* Override any animation classes */
+.friends-content.fade-in,
+.friends-content.fade-out,
+.friends-content.content-slide-up {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  transition: none !important;
 }
 
 /* Search Container */
