@@ -50,19 +50,24 @@ export function showTab(tab) {
   // Add/remove back button based on current tab
   updateBackButton(tab)
   
-  // For friends tab, ensure content is visible before rendering
+  // For friends tab, completely bypass fade-out logic
   if (tab === "friends") {
     if (content) {
-      // Remove all animation classes and ensure visibility
+      // Remove all animation classes immediately
       content.classList.remove("fade-out", "fade-in", "content-slide-up")
-      content.style.opacity = "1"
-      content.style.transform = "translateY(0)"
-      content.style.display = "block"
+      // Force visibility with !important-level inline styles
+      content.style.cssText = `
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+        display: block !important;
+        visibility: visible !important;
+      `
       // Set a temporary loading state to prevent empty content
       if (!content.innerHTML.trim()) {
         content.innerHTML = '<div style="padding: 20px; text-align: center;">Loading friends...</div>'
       }
     }
+    // Render immediately without any delay
     renderTabContent(tab, content, topBar)
     return
   }
@@ -88,30 +93,57 @@ function renderTabContent(tab, content, topBar) {
   // Remove fade-out class immediately to ensure content is visible
   if (content) {
     content.classList.remove("fade-out", "fade-in", "content-slide-up")
-    // Force content to be visible before rendering
-    content.style.opacity = "1"
-    content.style.transform = "translateY(0)"
-    content.style.display = "" // Ensure display is not none
-    content.style.visibility = "visible"
-    // For friends tab specifically, prevent any fade-out
+    // For friends tab, use !important styles to override everything
     if (tab === "friends") {
-      // Use a MutationObserver to prevent fade-out class from being added
+      content.style.cssText = `
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+        display: block !important;
+        visibility: visible !important;
+      `
+      // Use a MutationObserver to prevent fade-out class and any opacity changes
+      if (content._friendsObserver) {
+        content._friendsObserver.disconnect()
+      }
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-            if (content.classList.contains('fade-out')) {
+          if (mutation.type === 'attributes') {
+            if (mutation.attributeName === 'class' && content.classList.contains('fade-out')) {
               content.classList.remove('fade-out')
-              content.style.opacity = "1"
-              content.style.visibility = "visible"
+              content.style.cssText = `
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+                display: block !important;
+                visibility: visible !important;
+              `
+            }
+            if (mutation.attributeName === 'style') {
+              // Re-apply !important styles if they were changed
+              const currentOpacity = window.getComputedStyle(content).opacity
+              if (currentOpacity !== "1") {
+                content.style.cssText = `
+                  opacity: 1 !important;
+                  transform: translateY(0) !important;
+                  display: block !important;
+                  visibility: visible !important;
+                `
+              }
             }
           }
         })
       })
-      observer.observe(content, { attributes: true, attributeFilter: ['class'] })
-      // Store observer to clean up later if needed
-      if (!content._friendsObserver) {
-        content._friendsObserver = observer
-      }
+      observer.observe(content, { 
+        attributes: true, 
+        attributeFilter: ['class', 'style'],
+        attributeOldValue: true
+      })
+      content._friendsObserver = observer
+    } else {
+      // For other tabs, use normal styles
+      content.style.opacity = "1"
+      content.style.transform = "translateY(0)"
+      content.style.display = ""
+      content.style.visibility = "visible"
     }
   }
   
@@ -185,33 +217,64 @@ function renderTabContent(tab, content, topBar) {
       dom.pageTitle().innerText = "Friends"
       // Clear active conversation when going to friends
       state.ACTIVE_CONVERSATION_ID = null
-      // Ensure content is visible before async call
+      // Force content to be visible with maximum priority
       if (content) {
-        content.style.opacity = "1"
-        content.style.transform = "translateY(0)"
-        content.style.display = "block"
-        content.classList.remove("fade-out")
+        content.classList.remove("fade-out", "fade-in", "content-slide-up")
+        content.style.cssText = `
+          opacity: 1 !important;
+          transform: translateY(0) !important;
+          display: block !important;
+          visibility: visible !important;
+        `
       }
-      // Render friends
+      // Render friends - don't add any fade-in classes that might interfere
       renderFriends().then(() => {
-        // Ensure content remains visible after rendering
+        // Ensure content remains visible after rendering - use multiple checks
         if (content) {
+          // Immediate check
+          content.classList.remove("fade-out")
+          content.style.cssText = `
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            display: block !important;
+            visibility: visible !important;
+          `
+          // Check again after a frame
           requestAnimationFrame(() => {
-            content.style.opacity = "1"
-            content.style.transform = "translateY(0)"
-            content.style.display = "block"
-            content.classList.remove("fade-out")
-            content.classList.add("fade-in", "content-slide-up")
+            if (content) {
+              content.classList.remove("fade-out")
+              content.style.cssText = `
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+                display: block !important;
+                visibility: visible !important;
+              `
+            }
+          })
+          // Final check after another frame
+          requestAnimationFrame(() => {
+            if (content) {
+              content.classList.remove("fade-out")
+              content.style.cssText = `
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+                display: block !important;
+                visibility: visible !important;
+              `
+            }
           })
         }
       }).catch((error) => {
         console.error("[DEBUG navigation] Error rendering friends:", error)
         // Even on error, ensure content is visible
         if (content) {
-          content.style.opacity = "1"
-          content.style.transform = "translateY(0)"
-          content.style.display = "block"
           content.classList.remove("fade-out")
+          content.style.cssText = `
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            display: block !important;
+            visibility: visible !important;
+          `
         }
       })
       return

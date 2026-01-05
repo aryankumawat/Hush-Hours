@@ -34,11 +34,13 @@ export async function renderFriends() {
     // Set class first and ensure content is visible (remove all animation classes)
     content.className = "app-content friends-content"
     content.classList.remove("fade-out", "fade-in", "content-slide-up")
-    // Force visibility with inline styles to override any CSS - do this BEFORE setting innerHTML
-    content.style.opacity = "1"
-    content.style.transform = "translateY(0)"
-    content.style.display = "block"
-    content.style.visibility = "visible"
+    // Force visibility with !important inline styles to override any CSS - do this BEFORE setting innerHTML
+    content.style.cssText = `
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+      display: block !important;
+      visibility: visible !important;
+    `
     
     // Render search bar and friends list
     content.innerHTML = `
@@ -87,25 +89,42 @@ export async function renderFriends() {
     // Setup event listeners
     setupFriendListeners()
     
-    // Ensure content is visible after rendering (double-check)
+    // Ensure content is visible after rendering - use !important to override everything
     // Use multiple requestAnimationFrame calls to ensure visibility
     requestAnimationFrame(() => {
       if (content) {
-        content.classList.remove("fade-out")
-        content.style.opacity = "1"
-        content.style.transform = "translateY(0)"
-        content.style.display = "block"
-        content.style.visibility = "visible"
+        content.classList.remove("fade-out", "fade-in", "content-slide-up")
+        content.style.cssText = `
+          opacity: 1 !important;
+          transform: translateY(0) !important;
+          display: block !important;
+          visibility: visible !important;
+        `
         // Force a reflow to ensure styles are applied
         void content.offsetHeight
       }
-      // Second frame to add animation
+      // Second frame to double-check
       requestAnimationFrame(() => {
         if (content) {
-          content.style.opacity = "1"
-          content.style.display = "block"
-          content.style.visibility = "visible"
-          content.classList.add("fade-in")
+          content.classList.remove("fade-out")
+          content.style.cssText = `
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            display: block !important;
+            visibility: visible !important;
+          `
+        }
+      })
+      // Third frame for extra safety
+      requestAnimationFrame(() => {
+        if (content) {
+          content.classList.remove("fade-out")
+          content.style.cssText = `
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            display: block !important;
+            visibility: visible !important;
+          `
         }
       })
     })
