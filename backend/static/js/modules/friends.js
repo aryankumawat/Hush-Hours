@@ -18,6 +18,21 @@ export async function renderFriends() {
     return
   }
   
+  // CRITICAL: Set visibility IMMEDIATELY before any async operations
+  // This prevents any fade-out from happening
+  content.className = "app-content friends-content"
+  content.classList.remove("fade-out", "fade-in", "content-slide-up")
+  // Disable CSS transitions completely for friends content
+  content.style.cssText = `
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    display: block !important;
+    visibility: visible !important;
+    transition: none !important;
+  `
+  // Force a reflow to apply styles immediately
+  void content.offsetHeight
+  
   try {
     // Fetch friends list
     const response = await fetch("/friends", { credentials: "include" })
@@ -31,15 +46,14 @@ export async function renderFriends() {
     console.log("[DEBUG friends] Received friends:", friends)
     console.log("[DEBUG friends] Friends count:", friends.length)
     
-    // Set class first and ensure content is visible (remove all animation classes)
-    content.className = "app-content friends-content"
+    // Re-apply visibility styles right before setting innerHTML
     content.classList.remove("fade-out", "fade-in", "content-slide-up")
-    // Force visibility with !important inline styles to override any CSS - do this BEFORE setting innerHTML
     content.style.cssText = `
       opacity: 1 !important;
       transform: translateY(0) !important;
       display: block !important;
       visibility: visible !important;
+      transition: none !important;
     `
     
     // Render search bar and friends list
