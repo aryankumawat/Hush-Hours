@@ -90,53 +90,15 @@ function renderTabContent(tab, content, topBar) {
   // Remove fade-out class immediately to ensure content is visible
   if (content) {
     content.classList.remove("fade-out", "fade-in", "content-slide-up")
-    // For friends tab, use !important styles to override everything and disable transitions
+    // For friends tab, NO animations at all - just ensure visibility
     if (tab === "friends") {
       content.style.cssText = `
         opacity: 1 !important;
-        transform: translateY(0) !important;
+        transform: none !important;
         display: block !important;
         visibility: visible !important;
         transition: none !important;
       `
-      // Use a MutationObserver to prevent fade-out class and any opacity changes
-      if (content._friendsObserver) {
-        content._friendsObserver.disconnect()
-      }
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'attributes') {
-            if (mutation.attributeName === 'class' && content.classList.contains('fade-out')) {
-              content.classList.remove('fade-out')
-              content.style.cssText = `
-                opacity: 1 !important;
-                transform: translateY(0) !important;
-                display: block !important;
-                visibility: visible !important;
-              `
-            }
-            if (mutation.attributeName === 'style') {
-              // Re-apply !important styles if they were changed
-              const currentOpacity = window.getComputedStyle(content).opacity
-              if (currentOpacity !== "1") {
-                content.style.cssText = `
-                  opacity: 1 !important;
-                  transform: translateY(0) !important;
-                  display: block !important;
-                  visibility: visible !important;
-                  transition: none !important;
-                `
-              }
-            }
-          }
-        })
-      })
-      observer.observe(content, { 
-        attributes: true, 
-        attributeFilter: ['class', 'style'],
-        attributeOldValue: true
-      })
-      content._friendsObserver = observer
     } else {
       // For other tabs, use normal styles
       content.style.opacity = "1"
